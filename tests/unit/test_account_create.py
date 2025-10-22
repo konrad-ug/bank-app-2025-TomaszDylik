@@ -56,3 +56,34 @@ class TestAccount:
     def test_promo_code_ivalid_format_lowercase(self):
         account = Account("John", "Doe", "12345678910", promo_code="prom_abc")
         assert account.balance == 0.0
+
+    # tests of validation participation to promotion
+    # participates in promotion
+    def test_pesel_valid_participates_in_promo_XXI_century(self):
+        account = Account("Alice", "Smith", "09876543210", promo_code="PROM_XYZ")
+        assert account.pesel == "09876543210"
+        assert account.balance == 50.0
+        assert account.younger_than_60 == True
+    def test_pesel_valid_participates_in_promo_XX_century_over_1960(self):
+        account = Account("Bob", "Brown", "61012345678", promo_code="PROM_12345")
+        assert account.pesel == "61012345678"
+        assert account.balance == 50.0
+        assert account.younger_than_60 == True
+    
+    # does not participate in promotion
+    def test_pesel_valid_does_not_participate_in_promo_XX_century_under_1960(self):
+        account = Account("Charlie", "Davis", "59012345678", promo_code="PROM_67890")
+        assert account.pesel == "59012345678"
+        assert account.balance == 0.0
+        assert account.younger_than_60 == False
+    def test_pesel_valid_does_not_participate_in_promo_1960_birth_year(self):
+        account = Account("Eve", "Wilson", "60012345678", promo_code="PROM_EDGE")
+        assert account.pesel == "60012345678"
+        assert account.balance == 0.0
+        assert account.younger_than_60 == False
+    def test_pesel_invalid_does_not_participate_in_promo_pesel_invalid(self):
+        account = Account("Diana", "Evans", "12345", promo_code="PROM_ABCDE")
+        assert account.pesel == "Inavlid"
+        assert account.balance == 0.0
+        assert account.younger_than_60 == False
+    
