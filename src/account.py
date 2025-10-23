@@ -40,3 +40,15 @@ class Account:
             return True
         
         return False
+        
+    # transfers methods
+    def outgoing_transfer(self, amount):
+        if amount <= 0:
+            return        
+        if self.balance >= amount:
+            self.balance -= amount
+
+    def incoming_transfer(self, amount):
+        if amount <= 0:
+            return        
+        self.balance += amount
