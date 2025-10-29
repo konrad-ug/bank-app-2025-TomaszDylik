@@ -10,3 +10,8 @@ class CompanyAccount(Account):
         if isinstance(nip, str) and len(nip) == 10 and nip.isdigit():
             return True
         return False
+    
+    def outgoing_express_transfer(self, amount: float) -> bool:
+        fee = 5.0
+        return super().outgoing_express_transfer(amount, fee)
+    

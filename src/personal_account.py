@@ -1,4 +1,6 @@
-class Account:
+from src.account import Account
+
+class PersonalAccount(Account):
     def __init__(self, first_name, last_name, pesel, promo_code=None, younger_than_60=True):
         self.first_name = first_name
         self.last_name = last_name
@@ -36,19 +38,11 @@ class Account:
         if month >= 20:
             return True
         
-        if year_prefix > 60:
+        if year_prefix > 65:
             return True
         
         return False
-        
-    # transfers methods
-    def outgoing_transfer(self, amount):
-        if amount <= 0:
-            return        
-        if self.balance >= amount:
-            self.balance -= amount
-
-    def incoming_transfer(self, amount):
-        if amount <= 0:
-            return        
-        self.balance += amount
+    
+    def outgoing_express_transfer(self, amount: float) -> bool:
+        fee = 1.0
+        return super().outgoing_express_transfer(amount, fee)
