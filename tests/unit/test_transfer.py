@@ -1,5 +1,4 @@
-from src.account import Account
-
+from src.personal_account import Account
 
 class TestTransfer:
     # tests for outgoing transfers
