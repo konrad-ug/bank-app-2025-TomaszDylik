@@ -28,8 +28,7 @@ class TestAccount:
         assert account.balance == 0.0
     def test_promo_code_valid_format_adds_50(self):
         account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_ABC")
-        assert account.balance == 50.0
-
+        assert account.balance == 50
     def test_promo_code_valid_format_with_numbers(self):
         account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_123")
         assert account.balance == 50.0
