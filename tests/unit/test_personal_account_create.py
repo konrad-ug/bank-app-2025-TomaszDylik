@@ -23,9 +23,6 @@ class TestAccount:
 
     # tests for promo_code 
     # valid
-    def test_promo_code_invalid_not_is_instance_str(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code=bool(True))
-        assert account.balance == 0.0
     def test_promo_code_valid_format_adds_50(self):
         account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_ABC")
         assert account.balance == 50
@@ -38,6 +35,9 @@ class TestAccount:
         assert account.balance == 50.0
 
     # none-valid
+    def test_promo_code_invalid_not_is_instance_str(self):
+        account = PersonalAccount("John", "Doe", "12345678910", promo_code=bool(True))
+        assert account.balance == 0.0
     def test_promo_code_none_no_bonus(self):
         account = PersonalAccount("John", "Doe", "12345678910", promo_code=None)
         assert account.balance == 0.0
