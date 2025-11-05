@@ -2,6 +2,7 @@ from src.account import Account
 
 class PersonalAccount(Account):
     def __init__(self, first_name, last_name, pesel, promo_code=None, younger_than_60=True):
+        super().__init__()
         self.first_name = first_name
         self.last_name = last_name
         self.balance = 0.0
