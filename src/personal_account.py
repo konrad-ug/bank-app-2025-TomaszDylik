@@ -47,3 +47,27 @@ class PersonalAccount(Account):
     def outgoing_express_transfer(self, amount: float) -> bool:
         fee = 1.0
         return super().outgoing_express_transfer(amount, fee)
+
+    def submit_for_loan(self, amount) -> bool:
+        ## 1 case
+        if len(self.history) < 3:
+            return False      
+        
+        last_three = self.history[-3:]
+        if all(entry > 0 for entry in last_three):
+            self.balance += amount
+            return True        
+
+        ## 2 case
+        if len(self.history) < 5:
+            return False
+            
+        last_five = self.history[-5:]
+        sum = 0.0
+        for entry in last_five:
+            sum += entry
+        if sum > amount:
+            self.balance += amount
+            return True
+        
+        return False         
