@@ -1,71 +1,50 @@
-from src.company_account import CompanyAccount
-
+import pytest
 
 class TestCompanyAccountHistory:
-    def test_company_account_initialization_history_empty(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        assert account.history == []
     
-    def test_company_account_history_initially_empty(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        assert len(account.history) == 0
+    @pytest.mark.parametrize("check_method,expected", [
+        ("list", []),
+        ("length", 0),
+    ])
+    def test_company_account_initialization(self, company_account, check_method, expected):
+        if check_method == "list":
+            assert company_account.history == expected
+        elif check_method == "length":
+            assert len(company_account.history) == expected
 
-    def test_incoming_transfer_adds_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.incoming_transfer(1000.0)
-        assert account.history == [1000.00]
-
-    def test_outgoing_transfer_adds_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.balance = 500.0
-        account.outgoing_transfer(200.0)
-        assert account.history == [-200.00]
-    
-    def test_outgoing_transfer_insufficient_funds_not_added_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.balance = 50.0
-        account.outgoing_transfer(200.0)
-        assert account.history == []
-    
-    def test_incoming_transfer_negative_amount_not_added_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.incoming_transfer(-100.0)
-        assert account.history == []
-    
-    def test_outgoing_express_transfer_adds_amount_and_fee_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.balance = 1000.0
-        account.outgoing_express_transfer(500.0)
-        assert account.history == [-500.00, -5.0]
-    
-    def test_outgoing_express_transfer_insufficient_funds_not_added_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.balance = 100.0
-        account.outgoing_express_transfer(500.0)
-        assert account.history == []
-    
-    def test_multiple_operations_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.incoming_transfer(2000.0)
-        account.outgoing_express_transfer(800.0)
-        assert account.history == [2000.00, -800.00, -5.0]
-    
-    def test_complex_history_sequence(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.incoming_transfer(5000.0)
-        account.outgoing_transfer(1000.0)
-        account.incoming_transfer(500.0)
-        account.outgoing_express_transfer(300.0)
-        account.outgoing_transfer(100.0)
-        assert account.history == [5000.00, -1000.00, 500.00, -300.00, -5.0, -100.00]
-    
-    def test_outgoing_transfer_zero_amount_not_added_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.balance = 1000.0
-        account.outgoing_transfer(0.0)
-        assert account.history == []
-    
-    def test_incoming_transfer_zero_amount_not_added_to_history(self):
-        account = CompanyAccount("TechCorp", "1234567890")
-        account.incoming_transfer(0.0)
-        assert account.history == []
+    @pytest.mark.parametrize("operations,expected_history", [
+        # Single incoming transfer
+        ([("incoming", 1000.0)], [1000.00]),
+        # Single outgoing transfer (with initial balance)
+        ([("set_balance", 500.0), ("outgoing", 200.0)], [-200.00]),
+        # Outgoing transfer - insufficient funds (not added)
+        ([("set_balance", 50.0), ("outgoing", 200.0)], []),
+        # Incoming transfer - negative amount (not added)
+        ([("incoming", -100.0)], []),
+        # Incoming transfer - zero amount (not added)
+        ([("incoming", 0.0)], []),
+        # Outgoing transfer - zero amount (not added)
+        ([("set_balance", 1000.0), ("outgoing", 0.0)], []),
+        # Express transfer with fee
+        ([("set_balance", 1000.0), ("express", 500.0)], [-500.00, -5.0]),
+        # Express transfer - insufficient funds (not added)
+        ([("set_balance", 100.0), ("express", 500.0)], []),
+        # Multiple operations
+        ([("incoming", 2000.0), ("express", 800.0)], [2000.00, -800.00, -5.0]),
+        # Complex sequence
+        ([("incoming", 5000.0), ("outgoing", 1000.0), ("incoming", 500.0), 
+          ("express", 300.0), ("outgoing", 100.0)], 
+         [5000.00, -1000.00, 500.00, -300.00, -5.0, -100.00]),
+    ])
+    def test_history_tracking(self, company_account, operations, expected_history):
+        for operation_type, amount in operations:
+            if operation_type == "incoming":
+                company_account.incoming_transfer(amount)
+            elif operation_type == "outgoing":
+                company_account.outgoing_transfer(amount)
+            elif operation_type == "express":
+                company_account.outgoing_express_transfer(amount)
+            elif operation_type == "set_balance":
+                company_account.balance = amount
+        
+        assert company_account.history == expected_history

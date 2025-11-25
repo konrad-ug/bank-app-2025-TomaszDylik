@@ -1,26 +1,22 @@
+import pytest
 from src.company_account import CompanyAccount
 
-class TestCompanyAccount:
-    def test_create_company_account(self):
+class TestCompanyAccountCreation:
+    
+    def test_create_company_account_valid(self):
         company_account = CompanyAccount("Tech Solutions", "1234567890")
         assert company_account.name == "Tech Solutions"
         assert company_account.nip == "1234567890"
         assert company_account.balance == 0.0
     
-    # inavlid NIP tests
-    def test_invalid_nip_too_short(self):
-        company_account = CompanyAccount("Tech Solutions", "12345")
-        assert company_account.nip == "Invalid"
-    
-    def test_invalid_nip_too_long(self):
-        company_account = CompanyAccount("Tech Solutions", "123451234512345")
-        assert company_account.nip == "Invalid"
-
-    def test_invalid_nip_non_digit(self):
-        company_account = CompanyAccount("Tech Solutions", "12345ABCDE")
-        assert company_account.nip == "Invalid"
-    
-    # valid NIp tests
-    def test_valid_nip(self):
-        company_account = CompanyAccount("Tech Solutions", "0987654321")
-        assert company_account.nip == "0987654321"
+    @pytest.mark.parametrize("nip,expected_nip", [
+        # Invalid NIPs
+        ("12345", "Invalid"),  # too short
+        ("123451234512345", "Invalid"),  # too long
+        ("12345ABCDE", "Invalid"),  # contains non-digits
+        # Valid NIP
+        ("0987654321", "0987654321"),
+    ])
+    def test_nip_validation(self, nip, expected_nip):
+        company_account = CompanyAccount("Tech Solutions", nip)
+        assert company_account.nip == expected_nip
