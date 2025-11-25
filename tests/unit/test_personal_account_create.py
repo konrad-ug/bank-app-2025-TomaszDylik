@@ -1,6 +1,9 @@
+import pytest
 from src.personal_account import PersonalAccount
 
-class TestAccount:
+
+class TestPersonalAccountCreation:
+    
     def test_account_creation(self):
         account = PersonalAccount("John", "Doe", "12345678910")
         assert account.first_name == "John"
@@ -8,83 +11,57 @@ class TestAccount:
         assert account.balance == 0.0
         assert account.pesel == "12345678910"
 
-    # tests for pesel
-    def test_pesel_too_short(self):
-        account = PersonalAccount("Jane", "Doe", "12345")
-        assert account.pesel == "Inavlid"
+
+class TestPeselValidation:
     
-    def test_pesel_too_long(self):
-        account = PersonalAccount("Jane", "Doe", "123451234512345")
-        assert account.pesel == "Inavlid"
+    @pytest.mark.parametrize("pesel,expected_pesel", [
+        ("12345", "Inavlid"),  # too short
+        ("123451234512345", "Inavlid"),  # too long
+        (None, "Inavlid"),  # non-digit (None)
+    ])
+    def test_invalid_pesel(self, pesel, expected_pesel):
+        account = PersonalAccount("Jane", "Doe", pesel)
+        assert account.pesel == expected_pesel
 
-    def test_pesel_non_digit(self):
-        account = PersonalAccount("Jane", "Doe", None)
-        assert account.pesel == "Inavlid"
 
-    # tests for promo_code 
-    # valid
-    def test_promo_code_valid_format_adds_50(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_ABC")
-        assert account.balance == 50
-    def test_promo_code_valid_format_with_numbers(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_123")
-        assert account.balance == 50.0
-
-    def test_promo_code_valid_format_with_mixed_chars(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_A1B2C3")
-        assert account.balance == 50.0
-
-    # none-valid
-    def test_promo_code_invalid_not_is_instance_str(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code=bool(True))
-        assert account.balance == 0.0
-    def test_promo_code_none_no_bonus(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code=None)
-        assert account.balance == 0.0
-
-    def test_promo_code_invalid_format_bad_prefix(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="ABC_123")
-        assert account.balance == 0.0
-
-    def test_promo_code_invalid_format_no_underscore(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROMABC")
-        assert account.balance == 0.0
-
-    def test_promo_code_invalid_format_only_prom(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="PROM_")
-        assert account.balance == 0.0
-
-    def test_promo_code_ivalid_format_lowercase(self):
-        account = PersonalAccount("John", "Doe", "12345678910", promo_code="prom_abc")
-        assert account.balance == 0.0
-
-    # tests of validation participation to promotion
-    # participates in promotion
-    def test_pesel_valid_participates_in_promo_XXI_century(self):
-        account = PersonalAccount("Alice", "Smith", "09876543210", promo_code="PROM_XYZ")
-        assert account.pesel == "09876543210"
-        assert account.balance == 50.0
-        assert account.younger_than_60 == True
-    def test_pesel_valid_participates_in_promo_XX_century_over_1960(self):
-        account = PersonalAccount("Bob", "Brown", "66012345678", promo_code="PROM_12345")
-        assert account.pesel == "66012345678"
-        assert account.balance == 50.0
-        assert account.younger_than_60 == True
+class TestPromoCodeValidation:
     
-    # does not participate in promotion
-    def test_pesel_valid_does_not_participate_in_promo_XX_century_under_1960(self):
-        account = PersonalAccount("Charlie", "Davis", "59012345678", promo_code="PROM_67890")
-        assert account.pesel == "59012345678"
-        assert account.balance == 0.0
-        assert account.younger_than_60 == False
-    def test_pesel_valid_does_not_participate_in_promo_1960_birth_year(self):
-        account = PersonalAccount("Eve", "Wilson", "60012345678", promo_code="PROM_EDGE")
-        assert account.pesel == "60012345678"
-        assert account.balance == 0.0
-        assert account.younger_than_60 == False
-    def test_pesel_invalid_does_not_participate_in_promo_pesel_invalid(self):
-        account = PersonalAccount("Diana", "Evans", "12345", promo_code="PROM_ABCDE")
-        assert account.pesel == "Inavlid"
-        assert account.balance == 0.0
-        assert account.younger_than_60 == False
+    @pytest.mark.parametrize("promo_code,expected_balance", [
+        # Valid promo codes - should add 50.0
+        ("PROM_ABC", 50.0),
+        ("PROM_123", 50.0),
+        ("PROM_A1B2C3", 50.0),
+        # Invalid promo codes - should not add bonus
+        (bool(True), 0.0),  # not a string
+        (None, 0.0),  # None
+        ("ABC_123", 0.0),  # bad prefix
+        ("PROMABC", 0.0),  # no underscore
+        ("PROM_", 0.0),  # only prefix
+        ("prom_abc", 0.0),  # lowercase
+    ])
+    def test_promo_code_validation(self, promo_code, expected_balance):
+        account = PersonalAccount("John", "Doe", "12345678910", promo_code=promo_code)
+        assert account.balance == expected_balance
+
+
+class TestPromotionEligibility:
+    
+    @pytest.mark.parametrize("first_name,last_name,pesel,promo_code,expected_pesel,expected_balance,expected_eligible", [
+        # Eligible - XXI century (month >= 20)
+        ("Alice", "Smith", "09876543210", "PROM_XYZ", "09876543210", 50.0, True),
+        # Eligible - XX century born after 1965
+        ("Bob", "Brown", "66012345678", "PROM_12345", "66012345678", 50.0, True),
+        # Not eligible - XX century born before 1960
+        ("Charlie", "Davis", "59012345678", "PROM_67890", "59012345678", 0.0, False),
+        # Not eligible - born in 1960
+        ("Eve", "Wilson", "60012345678", "PROM_EDGE", "60012345678", 0.0, False),
+        # Not eligible - invalid PESEL
+        ("Diana", "Evans", "12345", "PROM_ABCDE", "Inavlid", 0.0, False),
+    ])
+    def test_promotion_eligibility(self, first_name, last_name, pesel, promo_code, 
+                                   expected_pesel, expected_balance, expected_eligible):
+        account = PersonalAccount(first_name, last_name, pesel, promo_code=promo_code)
+        assert account.pesel == expected_pesel
+        assert account.balance == expected_balance
+        assert account.younger_than_60 == expected_eligible
     

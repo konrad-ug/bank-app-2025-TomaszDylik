@@ -1,82 +1,65 @@
-from src.personal_account import PersonalAccount
+import pytest
 from src.company_account import CompanyAccount
 
-class TestTransfer:
-    # tests for outgoing transfers
-    def test_outgoing_transfer_reduces_balance(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 100.0
-        account.outgoing_transfer(20.0)
-        assert account.balance == 80.0
-
-    def test_outgoing_transfer_with_sufficient_funds(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 50.0
-        account.outgoing_transfer(30.0)
-        assert account.balance == 20.0
-
-    def test_outgoing_transfer_exceeding_balance(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 30.0
-        account.outgoing_transfer(50.0)
-        assert account.balance == 30.0 
-
-    def test_outgoing_transfer_negative_amount(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 100.0
-        account.outgoing_transfer(-20.0)
-        assert account.balance == 100.0
-
-    # tests for incoming transfers
-    def test_incoming_transfer_increases_balance(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 50.0
-        account.incoming_transfer(30.0)
-        assert account.balance == 80.0
-
-    def test_incoming_transfer_negative_amount(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 100.0
-        account.incoming_transfer(-20.0)
-        assert account.balance == 100.0  
-
-    # tests for outgoing express transfers
-    # personal
-    def test_outgoing_express_transfer_with_sufficient_funds(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 100.0
-        account.outgoing_express_transfer(50.0)
-        assert account.balance == 49.0
+class TestPersonalAccountTransfers:
     
-    def test_outgoing_express_transfer_exceeding_balance(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 40.0
-        account.outgoing_express_transfer(40.0)
-        assert account.balance == -1.00
-    
-    def test_outgoing_express_transfer_negative_amount(self):
-        account = PersonalAccount("John", "Doe", "12345678910")
-        account.balance = 100.0
-        account.outgoing_express_transfer(-20.0)
-        assert account.balance == 100.0
+    @pytest.mark.parametrize("initial_balance,transfer_amount,expected_balance", [
+        # Outgoing transfers - valid scenarios
+        (100.0, 20.0, 80.0),
+        (50.0, 30.0, 20.0),
+        # Outgoing transfer - exceeding balance (should not change)
+        (30.0, 50.0, 30.0),
+        # Outgoing transfer - negative amount (should not change)
+        (100.0, -20.0, 100.0),
+    ])
+    def test_outgoing_transfer(self, personal_account_john, initial_balance, 
+                               transfer_amount, expected_balance):
+        personal_account_john.balance = initial_balance
+        personal_account_john.outgoing_transfer(transfer_amount)
+        assert personal_account_john.balance == expected_balance
 
-    # company
-    def test_outgoing_express_transfer_sufficient_balance(self):
-        account = CompanyAccount("TechComp", "1234567890")
-        account.balance = 200.0
-        account.outgoing_express_transfer(100.0)
-        assert account.balance == 95.0
+    @pytest.mark.parametrize("initial_balance,transfer_amount,expected_balance", [
+        # Incoming transfer - valid
+        (50.0, 30.0, 80.0),
+        # Incoming transfer - negative amount (should not change)
+        (100.0, -20.0, 100.0),
+    ])
+    def test_incoming_transfer(self, personal_account_john, initial_balance, 
+                               transfer_amount, expected_balance):
+        personal_account_john.balance = initial_balance
+        personal_account_john.incoming_transfer(transfer_amount)
+        assert personal_account_john.balance == expected_balance
 
-    def test_outgoing_express_transfer_exceeding_balance(self):
-        account = CompanyAccount("TechComp", "0987654321")
-        account.balance = 200.0
-        account.outgoing_express_transfer(200.0)
-        assert account.balance == -5.0
+    @pytest.mark.parametrize("initial_balance,transfer_amount,expected_balance", [
+        # Express transfer - sufficient funds
+        (100.0, 50.0, 49.0),
+        # Express transfer - exactly at balance (goes negative due to fee)
+        (40.0, 40.0, -1.0),
+        # Express transfer - negative amount (should not change)
+        (100.0, -20.0, 100.0),
+    ])
+    def test_outgoing_express_transfer(self, personal_account_john, initial_balance, 
+                                       transfer_amount, expected_balance):
+        personal_account_john.balance = initial_balance
+        personal_account_john.outgoing_express_transfer(transfer_amount)
+        assert personal_account_john.balance == expected_balance
+
+
+class TestCompanyAccountTransfers:
     
-    def test_outgoing_express_transfer_negative_amount(self):
-        account = CompanyAccount("TechComp", "1234567890")
-        account.balance = 100.0
-        account.outgoing_express_transfer(-20.0)
-        assert account.balance == 100.0
+    @pytest.mark.parametrize("initial_balance,transfer_amount,expected_balance,nip", [
+        # Express transfer - sufficient balance
+        (200.0, 100.0, 95.0, "1234567890"),
+        # Express transfer - exactly at balance (goes negative due to fee)
+        (200.0, 200.0, -5.0, "0987654321"),
+        # Express transfer - negative amount (should not change)
+        (100.0, -20.0, 100.0, "1234567890"),
+    ])
+    def test_outgoing_express_transfer(self, initial_balance, transfer_amount, 
+                                       expected_balance, nip):
+        account = CompanyAccount("TechComp", nip)
+        account.balance = initial_balance
+        account.outgoing_express_transfer(transfer_amount)
+        assert account.balance == expected_balance
     
 
