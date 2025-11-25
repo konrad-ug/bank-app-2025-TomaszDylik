@@ -48,25 +48,27 @@ class PersonalAccount(Account):
         fee = 1.0
         return super().outgoing_express_transfer(amount, fee)
 
-    def submit_for_loan(self, amount) -> bool:
-        ## 1 case
+    def _has_last_three_positive(self) -> bool:
         if len(self.history) < 3:
-            return False      
-        
+            return False
         last_three = self.history[-3:]
-        if all(entry > 0 for entry in last_three):
-            self.balance += amount
-            return True        
-
-        ## 2 case
+        return all(entry > 0 for entry in last_three)
+    
+    def _sum_last_five_exceeds(self, amount: float) -> bool:
         if len(self.history) < 5:
             return False
-            
         last_five = self.history[-5:]
-        sum = 0.0
-        for entry in last_five:
-            sum += entry
-        if sum > amount:
+        total = sum(last_five)
+        return total > amount
+
+    def submit_for_loan(self, amount: float) -> bool:
+        # Check criterion 1: last 3 positive
+        if self._has_last_three_positive():
+            self.balance += amount
+            return True
+        
+        # Check criterion 2: sum of last 5 exceeds amount
+        if self._sum_last_five_exceeds(amount):
             self.balance += amount
             return True
         
