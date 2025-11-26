@@ -16,3 +16,18 @@ class CompanyAccount(Account):
         fee = 5.0
         return super().outgoing_express_transfer(amount, fee)
     
+    def take_loan(self, amount: float) -> bool:
+
+        # Check if balance is sufficient
+        if self.balance < amount * 2:
+            return False
+        
+        # Check ZUS payment in history (-1775.0)
+        has_zus_payment = -1775.0 in self.history
+        
+        if has_zus_payment:
+            self.balance += amount
+            return True
+        
+        return False
+    
