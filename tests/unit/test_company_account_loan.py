@@ -1,9 +1,23 @@
 from src.company_account import CompanyAccount
+from unittest.mock import patch, Mock
 import pytest
 
 @pytest.fixture
 def company_account():
-    return CompanyAccount("Tech Solutions", "1234567890")
+    # Mock API response dla fixture
+    with patch('src.company_account.requests.get') as mock_get:
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = '{"result": {"subject": {"statusVat": "Czynny"}}}'
+        mock_response.json.return_value = {
+            "result": {
+                "subject": {
+                    "statusVat": "Czynny"
+                }
+            }
+        }
+        mock_get.return_value = mock_response
+        return CompanyAccount("Tech Solutions", "1234567890")
 
 class TestCompanyAccountLoan:
 

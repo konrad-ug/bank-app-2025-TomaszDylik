@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, Mock
 from src.company_account import CompanyAccount
 
 class TestPersonalAccountTransfers:
@@ -55,8 +56,22 @@ class TestCompanyAccountTransfers:
         # Express transfer - negative amount (should not change)
         (100.0, -20.0, 100.0, "1234567890"),
     ])
-    def test_outgoing_express_transfer(self, initial_balance, transfer_amount, 
+    @patch('src.company_account.requests.get')
+    def test_outgoing_express_transfer(self, mock_get, initial_balance, transfer_amount, 
                                        expected_balance, nip):
+        # Mock odpowiedzi API z statusem "Czynny"
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = '{"result": {"subject": {"statusVat": "Czynny"}}}'
+        mock_response.json.return_value = {
+            "result": {
+                "subject": {
+                    "statusVat": "Czynny"
+                }
+            }
+        }
+        mock_get.return_value = mock_response
+        
         account = CompanyAccount("TechComp", nip)
         account.balance = initial_balance
         account.outgoing_express_transfer(transfer_amount)
