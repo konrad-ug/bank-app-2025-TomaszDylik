@@ -8,7 +8,12 @@ registry = AccountRegistry()
 def create_account():
     data = request.get_json()
     print(f"Create account request: {data}")
-    account = PersonalAccount(data["name"], data["surname"], data["pesel"])
+    
+    pesel = data["pesel"]
+    if registry.pesel_exists(pesel):
+        return jsonify({"message": "Account with this PESEL already exists"}), 409
+    
+    account = PersonalAccount(data["name"], data["surname"], pesel)
     registry.add_account(account)
     return jsonify({"message": "Account created"}), 201
 

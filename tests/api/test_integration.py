@@ -113,3 +113,40 @@ def test_delete_account_not_found(client):
     assert response.status_code == 404
     assert response.json["message"] == "Account not found"
 
+
+def test_create_account_with_duplicate_pesel(client):
+    # Tworzymy pierwsze konto
+    pesel = "12345678901"
+    payload = {"name": "Jan", "surname": "Kowalski", "pesel": pesel}
+    response1 = client.post('/api/accounts', json=payload)
+    assert response1.status_code == 201
+    
+    # Próbujemy utworzyć drugie konto z tym samym peselem
+    payload2 = {"name": "Anna", "surname": "Nowak", "pesel": pesel}
+    response2 = client.post('/api/accounts', json=payload2)
+    
+    assert response2.status_code == 409
+    assert response2.json["message"] == "Account with this PESEL already exists"
+    
+    # Sprawdzamy, że w rejestrze jest tylko jedno konto
+    count_response = client.get('/api/accounts/count')
+    assert count_response.json["count"] == 1
+
+
+def test_create_account_with_different_pesels(client):
+    # Tworzymy pierwsze konto
+    payload1 = {"name": "Jan", "surname": "Kowalski", "pesel": "12345678901"}
+    response1 = client.post('/api/accounts', json=payload1)
+    assert response1.status_code == 201
+    
+    # Tworzymy drugie konto z innym peselem
+    payload2 = {"name": "Anna", "surname": "Nowak", "pesel": "98765432109"}
+    response2 = client.post('/api/accounts', json=payload2)
+    
+    assert response2.status_code == 201
+    assert response2.json["message"] == "Account created"
+    
+    # Sprawdzamy, że w rejestrze są dwa konta
+    count_response = client.get('/api/accounts/count')
+    assert count_response.json["count"] == 2
+

@@ -40,3 +40,15 @@ class TestAccountRegistry:
         assert john_account in all_accounts
         assert jane_account in all_accounts
 
+    def test_pesel_exists_when_pesel_is_in_registry(self, registry_with_two_accounts):
+        assert registry_with_two_accounts.pesel_exists("12345678910") == True
+        assert registry_with_two_accounts.pesel_exists("09876543210") == True
+
+    def test_pesel_exists_when_pesel_not_in_registry(self, empty_registry):
+        assert empty_registry.pesel_exists("11111111111") == False
+
+    def test_pesel_exists_after_adding_account(self, empty_registry, john_account):
+        assert empty_registry.pesel_exists("12345678910") == False
+        empty_registry.add_account(john_account)
+        assert empty_registry.pesel_exists("12345678910") == True
+
