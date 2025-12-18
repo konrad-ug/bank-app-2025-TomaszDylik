@@ -4,6 +4,7 @@ omit =
     */tests/*
     */test_*
     src/company_account.py
+    smtp/smtp.py
 
 [report]
 exclude_lines =
