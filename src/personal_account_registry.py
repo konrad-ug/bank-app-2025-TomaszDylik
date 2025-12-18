@@ -13,6 +13,10 @@ class AccountRegistry:
                 return account
         return None
     
+    def pesel_exists(self, pesel: str) -> bool:
+        """Check if an account with given PESEL already exists in the registry."""
+        return self.find_account_by_pesel(pesel) is not None
+    
     def return_all_accounts(self):
         return self.accounts
     
