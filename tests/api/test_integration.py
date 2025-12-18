@@ -150,3 +150,123 @@ def test_create_account_with_different_pesels(client):
     count_response = client.get('/api/accounts/count')
     assert count_response.json["count"] == 2
 
+
+# FEATURE 17: Transfer tests
+@pytest.fixture
+def account_with_balance(client):
+    """Fixture creating an account with initial balance"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    # Add initial balance through incoming transfer
+    client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 1000, "type": "incoming"})
+    return pesel
+
+
+def test_transfer_account_not_found(client):
+    """Test 1: Sprawdzamy czy zwracamy 404 dla nieistniejącego konta"""
+    pesel = "99999999999"
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 100, "type": "incoming"})
+    
+    assert response.status_code == 404
+    assert response.json["message"] == "Account not found"
+
+
+def test_transfer_invalid_type(client):
+    """Test 2: Sprawdzamy czy zwracamy 400 dla nieprawidłowego typu przelewu"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 100, "type": "unknown"})
+    
+    assert response.status_code == 400
+    assert response.json["message"] == "Invalid transfer type"
+
+
+def test_incoming_transfer_success(client):
+    """Test 3: Sprawdzamy czy przelew przychodzący działa poprawnie"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 500, "type": "incoming"})
+    
+    assert response.status_code == 200
+    assert response.json["message"] == "Zlecenie przyjęto do realizacji"
+    
+    # Sprawdzamy czy saldo się zmieniło
+    account_response = client.get(f'/api/accounts/{pesel}')
+    assert account_response.json["balance"] == 500
+
+
+def test_outgoing_transfer_success(client, account_with_balance):
+    """Test 4: Sprawdzamy czy przelew wychodzący działa poprawnie przy wystarczającym saldzie"""
+    pesel = account_with_balance
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 300, "type": "outgoing"})
+    
+    assert response.status_code == 200
+    assert response.json["message"] == "Zlecenie przyjęto do realizacji"
+    
+    # Sprawdzamy czy saldo się zmniejszyło
+    account_response = client.get(f'/api/accounts/{pesel}')
+    assert account_response.json["balance"] == 700  # 1000 - 300
+
+
+def test_outgoing_transfer_insufficient_funds(client):
+    """Test 5: Sprawdzamy czy zwracamy 422 gdy brak środków na koncie"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 500, "type": "outgoing"})
+    
+    assert response.status_code == 422
+    assert response.json["message"] == "Insufficient funds"
+    
+    # Sprawdzamy czy saldo się nie zmieniło
+    account_response = client.get(f'/api/accounts/{pesel}')
+    assert account_response.json["balance"] == 0
+
+
+def test_express_transfer_success(client, account_with_balance):
+    """Test 6: Sprawdzamy czy przelew ekspresowy działa poprawnie"""
+    pesel = account_with_balance
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 200, "type": "express"})
+    
+    assert response.status_code == 200
+    assert response.json["message"] == "Zlecenie przyjęto do realizacji"
+    
+    # Sprawdzamy czy saldo się zmniejszyło o kwotę + opłatę (1.0)
+    account_response = client.get(f'/api/accounts/{pesel}')
+    assert account_response.json["balance"] == 799  # 1000 - 200 - 1
+
+
+def test_express_transfer_insufficient_funds(client):
+    """Test 7: Sprawdzamy czy zwracamy 422 dla przelewu ekspresowego bez środków"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 100, "type": "express"})
+    
+    assert response.status_code == 422
+    assert response.json["message"] == "Insufficient funds"
+
+
+def test_multiple_transfers_on_same_account(client):
+    """Test 8: Sprawdzamy czy można wykonać wiele przelewów na tym samym koncie"""
+    pesel = "12345678901"
+    client.post('/api/accounts', json={"name": "Jan", "surname": "Kowalski", "pesel": pesel})
+    
+    # Kilka przelewów przychodzących
+    client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 100, "type": "incoming"})
+    client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 200, "type": "incoming"})
+    client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 300, "type": "incoming"})
+    
+    # Przelew wychodzący
+    response = client.post(f'/api/accounts/{pesel}/transfer', json={"amount": 150, "type": "outgoing"})
+    
+    assert response.status_code == 200
+    
+    # Sprawdzamy końcowe saldo
+    account_response = client.get(f'/api/accounts/{pesel}')
+    assert account_response.json["balance"] == 450  # 100 + 200 + 300 - 150
+
